@@ -1,0 +1,28 @@
+{
+  "documents": [
+    {
+      "id": "atlas-01",
+      "client_id": "atlas-parts",
+      "title": "Social media guidance",
+      "text": "For Atlas Parts, LinkedIn posts should explain product applications before promotional calls to action.\n\nAvoid unsupported durability claims in automotive content."
+    },
+    {
+      "id": "atlas-02",
+      "client_id": "atlas-parts",
+      "title": "Product catalogue",
+      "text": "Product catalogue items include filters and brake components.\n\nSpecifications must be checked against the official product sheet."
+    },
+    {
+      "id": "north-01",
+      "client_id": "northstar-events",
+      "title": "Instagram guidelines",
+      "text": "For Northstar Events, Instagram captions should use a warm, concise tone.\n\nDo not promise unconfirmed event dates."
+    },
+    {
+      "id": "north-02",
+      "client_id": "northstar-events",
+      "title": "Channel scope",
+      "text": "LinkedIn publishing is not part of the current Northstar Events editorial scope."
+    }
+  ]
+}

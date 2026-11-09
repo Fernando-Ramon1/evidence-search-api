@@ -1,0 +1,28 @@
+{
+  "cases": [
+    {
+      "client_id": "atlas-parts",
+      "query": "LinkedIn product applications",
+      "limit": 3,
+      "expected_first_document": "atlas-01"
+    },
+    {
+      "client_id": "northstar-events",
+      "query": "LinkedIn",
+      "limit": 3,
+      "expected_first_document": "north-02"
+    },
+    {
+      "client_id": "atlas-parts",
+      "query": "unconfirmed event dates",
+      "limit": 3,
+      "expected_count": 0
+    },
+    {
+      "client_id": "unknown-client",
+      "query": "LinkedIn",
+      "limit": 3,
+      "expected_count": 0
+    }
+  ]
+}
