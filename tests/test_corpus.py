@@ -44,6 +44,19 @@ class CorpusValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(CorpusError, "duplicate document id"):
             build_index(corpus)
 
+    def test_rejects_invalid_document_and_client_ids(self):
+        missing = object()
+        for field in ("id", "client_id"):
+            for value in (missing, None, "", "   ", 7):
+                invalid_document = document()
+                if value is missing:
+                    del invalid_document[field]
+                else:
+                    invalid_document[field] = value
+                with self.subTest(field=field, value=value):
+                    with self.assertRaises(CorpusError):
+                        build_index({"documents": [invalid_document]})
+
     def test_load_rejects_malformed_json_without_exposing_path(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "private-corpus.json"
@@ -71,6 +84,19 @@ class ParagraphTests(unittest.TestCase):
             ["first", "second"],
         )
 
+    def test_cr_and_unicode_paragraph_boundaries_preserve_offsets(self):
+        for boundary in ("\r\r", "\u2029\u2029"):
+            text = f"first{boundary}second"
+            paragraphs = split_paragraphs(text)
+            with self.subTest(boundary=boundary):
+                self.assertEqual(
+                    [item.text for item in paragraphs], ["first", "second"]
+                )
+                for paragraph in paragraphs:
+                    self.assertEqual(
+                        text[paragraph.start : paragraph.end], paragraph.text
+                    )
+
 
 class RetrievalTests(unittest.TestCase):
     def test_unicode_casefolding_and_distinct_query_token_scoring(self):
@@ -79,6 +105,11 @@ class RetrievalTests(unittest.TestCase):
         )
         result = index.search("client-a", "STRASSE café café 中文", 5)[0]
         self.assertEqual(result["score"], 3)
+
+    def test_combining_marks_remain_in_unicode_words(self):
+        index = build_index({"documents": [document(text="हिन्दी café")]})
+        result = index.search("client-a", "हिन्दी cafe\u0301", 5)[0]
+        self.assertEqual(result["score"], 2)
 
     def test_keeps_first_best_paragraph_and_exact_offsets(self):
         text = "alpha first\n\nalpha second"

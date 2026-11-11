@@ -6,11 +6,19 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 import re
+import unicodedata
 from typing import Any
 
 
-WORD_RE = re.compile(r"\w+", re.UNICODE)
-PARAGRAPH_SEPARATOR_RE = re.compile(r"\r?\n(?:[^\S\r\n]*\r?\n)+")
+LINE_BOUNDARY_RE = (
+    r"(?:\r\n|(?<!\r)\n|\r(?!\n)|[\v\f\x1c-\x1e\x85\u2028\u2029])"
+)
+PARAGRAPH_SEPARATOR_RE = re.compile(
+    LINE_BOUNDARY_RE
+    + r"(?:[^\S\n\v\f\r\x1c-\x1e\x85\u2028\u2029]*"
+    + LINE_BOUNDARY_RE
+    + r")+"
+)
 
 
 class CorpusError(ValueError):
@@ -36,7 +44,24 @@ class Document:
 
 def tokenize(text: str) -> frozenset[str]:
     """Return distinct, case-folded Unicode word tokens."""
-    return frozenset(match.group(0).casefold() for match in WORD_RE.finditer(text))
+    tokens: set[str] = set()
+    word: list[str] = []
+    for character in unicodedata.normalize("NFC", text):
+        if character == "_" or character.isalnum():
+            word.append(character)
+        elif word and unicodedata.category(character).startswith("M"):
+            word.append(character)
+        else:
+            _append_token(tokens, word)
+    _append_token(tokens, word)
+    return frozenset(tokens)
+
+
+def _append_token(tokens: set[str], word: list[str]) -> None:
+    if not word:
+        return
+    tokens.add(unicodedata.normalize("NFC", "".join(word).casefold()))
+    word.clear()
 
 
 def split_paragraphs(text: str) -> tuple[Paragraph, ...]:

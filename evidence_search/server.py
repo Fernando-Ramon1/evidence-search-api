@@ -31,13 +31,23 @@ class EvidenceRequestHandler(BaseHTTPRequestHandler):
     server: EvidenceHTTPServer
 
     def do_GET(self) -> None:
-        if urlsplit(self.path).path == "/health":
+        try:
+            path = self._request_path()
+        except RequestError as exc:
+            self._send_json(400, {"error": str(exc)})
+            return
+        if path == "/health":
             self._send_json(200, {"status": "ok"})
             return
         self._send_json(404, {"error": "endpoint not found"})
 
     def do_POST(self) -> None:
-        if urlsplit(self.path).path != "/search":
+        try:
+            path = self._request_path()
+        except RequestError as exc:
+            self._send_json(400, {"error": str(exc)})
+            return
+        if path != "/search":
             self._send_json(404, {"error": "endpoint not found"})
             return
         try:
@@ -58,6 +68,12 @@ class EvidenceRequestHandler(BaseHTTPRequestHandler):
     do_PATCH = do_DELETE
     do_PUT = do_DELETE
 
+    def _request_path(self) -> str:
+        try:
+            return urlsplit(self.path).path
+        except ValueError as exc:
+            raise RequestError("invalid request target") from exc
+
     def _read_search_request(self) -> dict[str, Any]:
         content_length = self.headers.get("Content-Length")
         try:
@@ -68,7 +84,7 @@ class EvidenceRequestHandler(BaseHTTPRequestHandler):
             raise RequestError("invalid request body length")
         try:
             raw_body = self.rfile.read(length).decode("utf-8")
-            request = json.loads(raw_body)
+            request = json.loads(raw_body, parse_constant=self._reject_json_constant)
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise RequestError("request body must be valid UTF-8 JSON") from exc
         if not isinstance(request, dict):
@@ -85,8 +101,11 @@ class EvidenceRequestHandler(BaseHTTPRequestHandler):
             raise RequestError("limit must be an integer from 1 to 5")
         return {"client_id": client_id, "query": query, "limit": limit}
 
+    def _reject_json_constant(self, constant: str) -> None:
+        raise RequestError("request body must be valid UTF-8 JSON")
+
     def _send_json(self, status: int, payload: dict[str, Any]) -> None:
-        body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode(
+        body = json.dumps(payload, ensure_ascii=True, separators=(",", ":")).encode(
             "utf-8"
         )
         self.send_response(status)
